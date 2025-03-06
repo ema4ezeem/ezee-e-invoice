@@ -1,10 +1,14 @@
+import os
 from flask import Flask, request, jsonify, render_template
 from huggingface_hub import InferenceClient
 
 app = Flask(__name__)
 
-# replace with your actual API key
-HF_API_KEY = "hf_xxxxxxxxx"
+# get huggingface api key from environment variables
+HF_API_KEY = os.getenv("HF_API_KEY")
+
+if not HF_API_KEY:
+    raise ValueError("HF_API_KEY is not set in environment variables.")
 
 client = InferenceClient(
     provider="hf-inference",
@@ -29,8 +33,6 @@ def chat():
 
     bot_reply = completion.choices[0].message.content
     return jsonify({"response": bot_reply})
-
-import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # use render's port or default to 10000

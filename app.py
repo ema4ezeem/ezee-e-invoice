@@ -5,9 +5,8 @@ from huggingface_hub import InferenceClient
 app = Flask(__name__)
 
 # get huggingface api key from environment variables
-HF_API_KEY = os.getenv("HF_API_KEY")
-
-if not HF_API_KEY:
+HF_API_KEY = os.environ.get("HF_API_KEY")
+if HF_API_KEY is None:
     raise ValueError("HF_API_KEY is not set in environment variables.")
 
 client = InferenceClient(

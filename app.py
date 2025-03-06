@@ -20,7 +20,7 @@ def chat():
     user_message = request.json.get("message", "")
 
     payload = {
-        "model": "togethercomputer/llama-3-8b-instruct",
+        "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
         "messages": [{"role": "user", "content": user_message}],
         "max_tokens": 500
     }

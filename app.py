@@ -1,18 +1,15 @@
-import os
 from flask import Flask, request, jsonify, render_template
-from huggingface_hub import InferenceClient
+import os
+import requests
 
 app = Flask(__name__)
 
-# get huggingface api key from environment variables
-HF_API_KEY = os.environ.get("HF_API_KEY")
-if HF_API_KEY is None:
-    raise ValueError("HF_API_KEY is not set in environment variables.")
+# get api key from environment variable
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+if not TOGETHER_API_KEY:
+    raise ValueError("TOGETHER_API_KEY is not set in environment variables.")
 
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=HF_API_KEY
-)
+TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions"
 
 @app.route("/")
 def home():
@@ -22,17 +19,25 @@ def home():
 def chat():
     user_message = request.json.get("message", "")
 
-    messages = [{"role": "user", "content": user_message}]
+    payload = {
+        "model": "togethercomputer/llama-3-8b-instruct",
+        "messages": [{"role": "user", "content": user_message}],
+        "max_tokens": 500
+    }
 
-    completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.2-3B-Instruct",
-        messages=messages,
-        max_tokens=500,
-    )
+    headers = {
+        "Authorization": f"Bearer {TOGETHER_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    bot_reply = completion.choices[0].message.content
-    return jsonify({"response": bot_reply})
+    response = requests.post(TOGETHER_API_URL, json=payload, headers=headers)
+
+    if response.status_code == 200:
+        bot_reply = response.json()["choices"][0]["message"]["content"]
+        return jsonify({"response": bot_reply})
+    else:
+        return jsonify({"error": "API request failed", "details": response.json()}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # use render's port or default to 10000
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)

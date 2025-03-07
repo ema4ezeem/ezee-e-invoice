@@ -12,17 +12,17 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f4f4f4;
+            background-color: #fed11b;
         }
         .chat-container {
-            width: 400px;
+            width: 1400px;
             background: white;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         }
         .chat-box {
-            height: 400px;
+            height: 500px;
             overflow-y: auto;
             padding: 15px;
             display: flex;
@@ -36,7 +36,7 @@
         }
         .user {
             align-self: flex-end;
-            background: #007bff;
+            background: #0187fd;
             color: white;
         }
         .bot {
@@ -60,7 +60,7 @@
         }
         button {
             margin-left: 10px;
-            background: #007bff;
+            background: #0187fd;
             color: white;
             border: none;
             padding: 10px;
@@ -73,7 +73,7 @@
     <div class="chat-container">
         <div class="chat-box" id="chat-box"></div>
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="Type a message...">
+            <input type="text" id="user-input" placeholder="Type your question...">
             <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>

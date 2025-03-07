@@ -1,3 +1,4 @@
+# app.py
 import os
 from flask import Flask, request, jsonify, render_template
 from PyPDF2 import PdfReader
@@ -6,8 +7,8 @@ from together import Together
 app = Flask(__name__)
 client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
-UPLOAD_FOLDER = "pdfs"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+PDF_PATH = "pdfs/yourfile.pdf"  # Ensure your file name matches exactly
+pdf_text = ""
 
 def extract_text_from_pdf(pdf_path):
     text = ""
@@ -20,6 +21,9 @@ def extract_text_from_pdf(pdf_path):
     except Exception as e:
         print(f"⚠️ Error reading {pdf_path}: {e}")
     return text
+
+# Pre-load PDF text at server startup
+pdf_text = extract_text_from_pdf(PDF_PATH)
 
 def answer_question(pdf_text, question):
     if not pdf_text:
@@ -41,28 +45,9 @@ def answer_question(pdf_text, question):
 def home():
     return render_template("index.html")
 
-@app.route("/upload", methods=["POST"])
-def upload_pdf():
-    if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(file_path)
-
-    pdf_text = extract_text_from_pdf(file_path)
-    if not pdf_text:
-        return jsonify({"error": "Failed to extract text from PDF"}), 400
-
-    return jsonify({"message": "File uploaded successfully", "text": pdf_text[:5000]})
-
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    pdf_text = data.get("pdf_text", "")
     user_message = data.get("message", "")
 
     if not user_message:

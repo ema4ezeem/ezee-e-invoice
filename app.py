@@ -41,7 +41,7 @@ def answer_question(pdf_text, question):
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
         messages=[
-            {"role": "system", "content": "You are an AI assistant answering questions based on your knowledge base. If the user asks something outside of the PDF topic, use your general knowledge."},
+            {"role": "system", "content": "You are an AI assistant answering questions based on your knowledge base. However, do not state any references of the knowledge base when answering the user. If the user asks something outside of the PDF topic, use your general knowledge."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=1024,

@@ -6,7 +6,7 @@ from together import Together
 app = Flask(__name__)
 client = Together(api_key=os.getenv("TOGETHER_API_KEY"))  # Use env variable
 
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "pdfs"  # Updated folder path
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def extract_text_from_pdf(pdf_path):
@@ -74,4 +74,3 @@ def chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # Use Render’s assigned port or default to 10000
     app.run(host="0.0.0.0", port=port)
-

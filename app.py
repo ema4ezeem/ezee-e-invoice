@@ -1,4 +1,3 @@
-# app.py
 import os
 from flask import Flask, request, jsonify, render_template
 from PyPDF2 import PdfReader
@@ -7,8 +6,7 @@ from together import Together
 app = Flask(__name__)
 client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
-PDF_PATH = "pdfs/a.pdf.pdf"  # Ensure your file name matches exactly
-pdf_text = ""
+PDF_FOLDER = "pdfs"
 
 def extract_text_from_pdf(pdf_path):
     text = ""
@@ -22,19 +20,30 @@ def extract_text_from_pdf(pdf_path):
         print(f"⚠️ Error reading {pdf_path}: {e}")
     return text
 
-# Pre-load PDF text at server startup
-pdf_text = extract_text_from_pdf(PDF_PATH)
+# Dynamically load all PDFs from the folder
+def load_all_pdfs(folder):
+    combined_text = ""
+    for filename in os.listdir(folder):
+        if filename.lower().endswith(".pdf"):
+            pdf_path = os.path.join(folder, filename)
+            combined_text += extract_text_from_pdf(pdf_path) + "\n"
+    return combined_text
+
+# Pre-load PDF texts at server startup
+pdf_text = load_all_pdfs(PDF_FOLDER)
 
 def answer_question(pdf_text, question):
-    if not pdf_text:
-        return "⚠️ No text extracted from the PDF."
+    if not pdf_text.strip():
+        return "⚠️ No text extracted from PDFs."
 
     prompt = f"The following is your knowledge base:\n\n{pdf_text[:4000]}\n\nAnswer the following question:\n{question}"
 
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
-        messages=[{"role": "system", "content": "You are an AI assistant answering questions based on your knowledge base. If the user asks something outside of the PDF topic, use your general knowledge."},
-                  {"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": "You are an AI assistant answering questions based on your knowledge base. If the user asks something outside of the PDF topic, use your general knowledge."},
+            {"role": "user", "content": prompt}
+        ],
         max_tokens=1024,
         temperature=0.7,
         top_p=0.9,

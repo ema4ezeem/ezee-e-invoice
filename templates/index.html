@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot</title>
+    <title>EZ-Invoice FAQ Bot</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
@@ -13,13 +13,24 @@
             align-items: center;
             height: 100vh;
             background-color: #fed11b;
+            margin: 0;
         }
         .chat-container {
-            width: 1000px;
+            width: 750px;
             background: white;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: #0187fd;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
         }
         .chat-box {
             height: 500px;
@@ -33,16 +44,26 @@
             padding: 10px;
             margin: 5px;
             border-radius: 8px;
+            display: flex;
+            align-items: center;
         }
         .user {
             align-self: flex-end;
             background: #0187fd;
             color: white;
+            border-bottom-right-radius: 0;
         }
         .bot {
             align-self: flex-start;
             background: #e5e5e5;
             color: black;
+            border-bottom-left-radius: 0;
+            display: flex;
+            gap: 8px;
+        }
+        .bot-icon {
+            font-size: 18px;
+            color: #0187fd;
         }
         .input-container {
             display: flex;
@@ -71,6 +92,7 @@
 </head>
 <body>
     <div class="chat-container">
+        <div class="header">EZ-Invoice FAQ Bot</div>
         <div class="chat-box" id="chat-box"></div>
         <div class="input-container">
             <input type="text" id="user-input" placeholder="Type your question...">
@@ -106,7 +128,13 @@
             let chatBox = document.getElementById("chat-box");
             let msgDiv = document.createElement("div");
             msgDiv.classList.add("message", sender);
-            msgDiv.innerText = text;
+            
+            if (sender === "bot") {
+                msgDiv.innerHTML = `<i class="fas fa-robot bot-icon"></i> <span>${text}</span>`;
+            } else {
+                msgDiv.innerText = text;
+            }
+
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }

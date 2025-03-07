@@ -1,16 +1,15 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from PyPDF2 import PdfReader
 from together import Together
 
 app = Flask(__name__)
-client = Together(api_key=os.getenv("TOGETHER_API_KEY"))  # Use env variable
+client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
-UPLOAD_FOLDER = "pdfs"  # Updated folder path
+UPLOAD_FOLDER = "pdfs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def extract_text_from_pdf(pdf_path):
-    """Extract text from a single PDF file."""
     text = ""
     try:
         pdf_reader = PdfReader(pdf_path)
@@ -23,7 +22,6 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def answer_question(pdf_text, question):
-    """Answer user questions based on extracted PDF text."""
     if not pdf_text:
         return "⚠️ No text extracted from the PDF."
 
@@ -31,7 +29,7 @@ def answer_question(pdf_text, question):
 
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
-        messages=[{"role": "system", "content": "You are an AI assistant answering questions based on your knowledge base. If the user asks something outside of the PDF topic, use your general knowledge to answer."},
+        messages=[{"role": "system", "content": "You are an AI assistant answering questions based on your knowledge base. If the user asks something outside of the PDF topic, use your general knowledge."},
                   {"role": "user", "content": prompt}],
         max_tokens=1024,
         temperature=0.7,
@@ -39,9 +37,12 @@ def answer_question(pdf_text, question):
     )
     return response.choices[0].message.content.strip()
 
+@app.route("/", methods=["GET"])
+def home():
+    return render_template("index.html")
+
 @app.route("/upload", methods=["POST"])
 def upload_pdf():
-    """Endpoint for uploading PDFs."""
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -56,11 +57,10 @@ def upload_pdf():
     if not pdf_text:
         return jsonify({"error": "Failed to extract text from PDF"}), 400
 
-    return jsonify({"message": "File uploaded successfully", "text": pdf_text[:5000]})  # Send extracted text
+    return jsonify({"message": "File uploaded successfully", "text": pdf_text[:5000]})
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    """Endpoint to handle user questions."""
     data = request.json
     pdf_text = data.get("pdf_text", "")
     user_message = data.get("message", "")
@@ -72,10 +72,5 @@ def chat():
     return jsonify({"response": response})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Use Render’s assigned port or default to 10000
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-@app.route("/")
-def home():
-    return "hello, render is working!"
-

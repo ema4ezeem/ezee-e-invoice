@@ -7,7 +7,7 @@ from together import Together
 app = Flask(__name__)
 client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
-PDF_PATH = "pdfs/yourfile.pdf"  # Ensure your file name matches exactly
+PDF_PATH = "pdfs/a.pdf.pdf"  # Ensure your file name matches exactly
 pdf_text = ""
 
 def extract_text_from_pdf(pdf_path):

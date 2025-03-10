@@ -40,12 +40,21 @@ def load_all_pdfs(folder):
 # Pre-load PDF texts at server startup
 pdf_text = load_all_pdfs(PDF_FOLDER)
 
+def format_response(response_text):
+    """Formats response with proper line breaks and bullet points where necessary."""
+    response_lines = response_text.split(". ")
+    formatted_response = "\n".join([f"- {line.strip()}" for line in response_lines if line])
+    return formatted_response
+
 def answer_question(pdf_text, question):
     """Generates an AI response based on PDF content and user query."""
     if not pdf_text.strip():
         return "⚠️ No text extracted from PDFs."
 
-    prompt = f"The following is your knowledge base:\n\n{pdf_text[:4000]}\n\nAnswer the following question in a friendly, concise, and structured manner:\n{question}"
+    prompt = f"""
+    The following is your knowledge base:\n\n{pdf_text[:4000]}\n\n
+    Answer the following question in a friendly, concise, and structured manner:\n{question}
+    """
 
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
@@ -59,11 +68,7 @@ def answer_question(pdf_text, question):
     )
 
     response_text = response.choices[0].message.content.strip()
-
-    # Add line breaks for better readability
-    formatted_response = response_text.replace(". ", ".\n")
-
-    return formatted_response
+    return format_response(response_text)
 
 # --- GOOGLE DRIVE INTEGRATION ---
 def get_google_drive_service():

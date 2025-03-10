@@ -7,20 +7,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: transparent;
-            flex-direction: column;
-            margin: 0;
         }
         .chat-container {
-            width: 85vw;
+            width: 100vw;
             max-width: 600px;
-            height: 70vh;
+            height: 100vh;
             max-height: 600px;
             background: white;
             border-radius: 10px;
@@ -135,8 +135,8 @@
         }
         @media (max-width: 600px) {
             .chat-container {
-                width: 90vw;
-                height: 80vh;
+                width: 100vw;
+                height: 100vh;
             }
         }
     </style>
@@ -177,18 +177,15 @@
             .then(data => {
                 typingIndicator.remove();
                 addMessage(data.response, "bot");
-            });
+            })
+            .catch(() => typingIndicator.remove());
         }
 
         function addMessage(text, sender) {
             let chatBox = document.getElementById("chat-box");
             let msgDiv = document.createElement("div");
             msgDiv.classList.add("message", sender);
-            if (sender === "bot") {
-                msgDiv.innerHTML = `<i class="fas fa-robot"></i> ${text}`;
-            } else {
-                msgDiv.innerText = text;
-            }
+            msgDiv.innerHTML = sender === "bot" ? `<i class="fas fa-robot"></i> ${text}` : text;
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -204,9 +201,7 @@
         }
 
         function handleKeyPress(event) {
-            if (event.key === "Enter") {
-                sendMessage();
-            }
+            if (event.key === "Enter") sendMessage();
         }
     </script>
 </body>

@@ -55,7 +55,7 @@ def answer_question(pdf_text, question):
 
     prompt = f"""
     The following is your knowledge base:\n\n{pdf_text[:4000]}\n\n
-    Answer the following question in a friendly, concise, and structured manner:\n{question}
+    Answer the following question in a simple, summarised, point-form, concise, and structured manner:\n{question}
     """
 
     response = client.chat.completions.create(

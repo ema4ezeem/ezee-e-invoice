@@ -25,6 +25,7 @@ eval_type_backport==0.2.2
 fastapi==0.115.11
 filelock==3.17.0
 Flask==3.1.0
+Flask-Limiter==3.10.1
 flatbuffers==25.2.10
 frozenlist==1.5.0
 fsspec==2025.2.0
@@ -50,6 +51,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 joblib==1.4.2
 kubernetes==32.0.1
+limits==4.1
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
@@ -71,6 +73,7 @@ opentelemetry-proto==1.30.0
 opentelemetry-sdk==1.30.0
 opentelemetry-semantic-conventions==0.51b0
 opentelemetry-util-http==0.51b0
+ordered-set==4.1.0
 orjson==3.10.15
 overrides==7.7.0
 packaging==24.2

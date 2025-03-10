@@ -181,7 +181,7 @@
             .then(response => response.json())
             .then(data => {
                 typingIndicator.remove();
-                addMessage(data.response, "bot");
+                addMessage(convertMarkdown(data.response), "bot");
             })
             .catch(() => typingIndicator.remove());
         }
@@ -195,14 +195,11 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function addTypingIndicator() {
-            let chatBox = document.getElementById("chat-box");
-            let typingDiv = document.createElement("div");
-            typingDiv.classList.add("message", "bot", "typing");
-            typingDiv.innerHTML = '<i class="fas fa-robot"></i> <span class="dot"></span><span class="dot"></span><span class="dot"></span>';
-            chatBox.appendChild(typingDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            return typingDiv;
+        function convertMarkdown(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // Bold
+                .replace(/\n/g, "<br>") // Newlines
+                .replace(/- (.*?)(?=\n|$)/g, "• $1<br>"); // Bullets
         }
 
         function handleKeyPress(event) {

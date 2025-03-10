@@ -32,6 +32,7 @@ google-api-core==2.24.1
 google-api-python-client==2.163.0
 google-auth==2.38.0
 google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
 googleapis-common-protos==1.69.0
 grpcio==1.70.0
 gunicorn==23.0.0

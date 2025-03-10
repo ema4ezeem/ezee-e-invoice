@@ -13,14 +13,15 @@
             padding: 0;
             overflow: hidden;
             background: transparent;
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
         }
         .chat-container {
-            width: 100vw;
-            max-width: 600px;
-            height: 100vh;
+            width: 80vw;
+            max-width: 900px;
+            height: 80vh;
             max-height: 600px;
             background: white;
             border-radius: 10px;
@@ -133,10 +134,14 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        @media (max-width: 600px) {
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
             .chat-container {
                 width: 100vw;
                 height: 100vh;
+                max-width: none;
+                max-height: none;
+                border-radius: 0;
             }
         }
     </style>

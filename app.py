@@ -15,6 +15,7 @@ client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 PDF_FOLDER = "pdfs"
 
+
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file."""
     text = ""
@@ -28,6 +29,7 @@ def extract_text_from_pdf(pdf_path):
         print(f"⚠️ Error reading {pdf_path}: {e}")
     return text
 
+
 def load_all_pdfs(folder):
     """Loads and combines text from all PDFs in the folder."""
     combined_text = ""
@@ -37,14 +39,17 @@ def load_all_pdfs(folder):
             combined_text += extract_text_from_pdf(pdf_path) + "\n"
     return combined_text
 
+
 # Pre-load PDF texts at server startup
 pdf_text = load_all_pdfs(PDF_FOLDER)
+
 
 def format_response(response_text):
     """Formats response with proper line breaks and bullet points where necessary."""
     response_lines = response_text.split(". ")
     formatted_response = "\n".join([f"- {line.strip()}" for line in response_lines if line])
     return formatted_response
+
 
 def answer_question(pdf_text, question):
     """Generates an AI response based on PDF content and user query."""
@@ -70,6 +75,7 @@ def answer_question(pdf_text, question):
     response_text = response.choices[0].message.content.strip()
     return format_response(response_text)
 
+
 # --- GOOGLE DRIVE INTEGRATION ---
 def get_google_drive_service():
     """Authenticates and returns a Google Drive service instance."""
@@ -79,39 +85,35 @@ def get_google_drive_service():
 
     google_creds_dict = json.loads(google_creds_json)
     creds = Credentials.from_service_account_info(google_creds_dict)
-    return build("drive", "v3", credentials=creds)
+    return build("sheets", "v4", credentials=creds)
 
-def upload_to_google_drive(data):
-    """Saves chatbot logs to Google Drive as an Excel file."""
+
+def append_to_google_sheet(data):
+    """Appends chatbot logs to a Google Sheet instead of creating a new file every time."""
     service = get_google_drive_service()
-    folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID") 
+    spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
+    range_name = "ChatLogs!A:C"  
 
-    # Create a DataFrame
-    df = pd.DataFrame(data, columns=["Timestamp", "User Query", "Bot Response"])
-    
-    # Convert DataFrame to Excel in-memory
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="ChatLogs")
-    excel_buffer.seek(0)
+    values = [[datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data[0][1], data[0][2]]]
+    body = {"values": values}
 
-    # Upload to Google Drive
-    file_metadata = {
-        "name": f"chatbot_logs_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx",
-        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "parents": [folder_id]
-    }
+    service.spreadsheets().values().append(
+        spreadsheetId=spreadsheet_id,
+        range=range_name,
+        valueInputOption="RAW",
+        insertDataOption="INSERT_ROWS",
+        body=body
+    ).execute()
 
-    media = MediaIoBaseUpload(excel_buffer, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    service.files().create(body=file_metadata, media_body=media, fields="id").execute()
 
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
 
+
 @app.route("/chat", methods=["POST"])
 def chat():
-    """Handles user queries and logs them to Google Drive."""
+    """Handles user queries and logs them to Google Sheets."""
     data = request.json
     user_message = data.get("message", "")
 
@@ -122,9 +124,10 @@ def chat():
 
     # Log query & response
     chat_log = [[datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_message, bot_response]]
-    upload_to_google_drive(chat_log)
+    append_to_google_sheet(chat_log)
 
     return jsonify({"response": bot_response})
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

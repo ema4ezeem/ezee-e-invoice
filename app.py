@@ -9,12 +9,12 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import io
 import datetime
+import re
 
 app = Flask(__name__)
 client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 PDF_FOLDER = "pdfs"
-
 
 def extract_text_from_pdf(pdf_path):
     """Extracts text from a PDF file."""
@@ -29,7 +29,6 @@ def extract_text_from_pdf(pdf_path):
         print(f"⚠️ Error reading {pdf_path}: {e}")
     return text
 
-
 def load_all_pdfs(folder):
     """Loads and combines text from all PDFs in the folder."""
     combined_text = ""
@@ -39,17 +38,15 @@ def load_all_pdfs(folder):
             combined_text += extract_text_from_pdf(pdf_path) + "\n"
     return combined_text
 
-
 # Pre-load PDF texts at server startup
 pdf_text = load_all_pdfs(PDF_FOLDER)
 
-
 def format_response(response_text):
     """Formats response with proper line breaks and bullet points where necessary."""
-    response_lines = response_text.split(". ")
-    formatted_response = "\n".join([f"- {line.strip()}" for line in response_lines if line])
-    return formatted_response
-
+    response_text = re.sub(r'(?<!\n)- ', '\n- ', response_text)  # Ensure bullet points are on new lines
+    response_text = re.sub(r'(?<!\n)\d+ - ', '\n', response_text)  # Ensure numbered lists are on new lines
+    response_text = response_text.replace('. ', '.\n')  # Add line breaks after full stops
+    return response_text.strip()
 
 def answer_question(pdf_text, question):
     """Generates an AI response based on PDF content and user query."""
@@ -75,7 +72,6 @@ def answer_question(pdf_text, question):
     response_text = response.choices[0].message.content.strip()
     return format_response(response_text)
 
-
 # --- GOOGLE DRIVE INTEGRATION ---
 def get_google_drive_service():
     """Authenticates and returns a Google Drive service instance."""
@@ -87,29 +83,36 @@ def get_google_drive_service():
     creds = Credentials.from_service_account_info(google_creds_dict)
     return build("sheets", "v4", credentials=creds)
 
-
 def append_to_google_sheet(data):
     """Appends chatbot logs to a Google Sheet instead of creating a new file every time."""
-    service = get_google_drive_service()
-    spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
-    range_name = "ChatLogs!A:C"  
+    try:
+        print(f"🔍 Debug: Preparing to log data -> {data}")
 
-    values = [[datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data[0][1], data[0][2]]]
-    body = {"values": values}
+        service = get_google_drive_service()
+        spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
+        range_name = "ChatLogs!A:C"  
 
-    service.spreadsheets().values().append(
-        spreadsheetId=spreadsheet_id,
-        range=range_name,
-        valueInputOption="RAW",
-        insertDataOption="INSERT_ROWS",
-        body=body
-    ).execute()
+        values = [[datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data[0][1], data[0][2]]]
+        body = {"values": values}
 
+        print(f"📊 Debug: Sending data to Google Sheets -> {body}")
+
+        response = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+
+        print(f"✅ Debug: Google Sheets API response -> {response}")
+
+    except Exception as e:
+        print(f"❌ Error in append_to_google_sheet: {e}")
 
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
-
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -127,7 +130,6 @@ def chat():
     append_to_google_sheet(chat_log)
 
     return jsonify({"response": bot_response})
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

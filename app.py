@@ -257,7 +257,6 @@ def health_check():
     })
 
 @app.route("/chat", methods=["POST"])
-@limiter.limit("5 per minute")  # Apply rate limiting
 def chat():
     """Handles user queries and logs them to Google Sheets."""
     try:

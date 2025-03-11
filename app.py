@@ -39,7 +39,7 @@ limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=redis_url,
     storage_options={"connection_pool": redis_client.connection_pool},
-    default_limits=["200 per day", "30 per hour"]
+    default_limits=["2000 per day", "500 per hour"]
 )
 
 PDF_FOLDER = "pdfs"
@@ -265,7 +265,7 @@ def health_check():
     })
 
 @app.route("/chat", methods=["POST"])
-@limiter.limit("30 per hour")  # Apply rate limiting to this endpoint
+@limiter.limit("500 per hour")  # Apply rate limiting to this endpoint
 def chat():
     """Handles user queries and logs them to Google Sheets."""
     try:

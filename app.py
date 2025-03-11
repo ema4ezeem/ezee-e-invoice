@@ -13,6 +13,7 @@ from googleapiclient.discovery import build
 import datetime
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import redis
 
 # Configure logging
 logging.basicConfig(
@@ -28,10 +29,16 @@ logger = logging.getLogger("ez-invoice-bot")
 app = Flask(__name__)
 client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
-# Initialize rate limiter
+# Configure Redis connection for rate limiting
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+redis_client = redis.from_url(redis_url)
+
+# Initialize rate limiter with Redis storage
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
+    storage_uri=redis_url,
+    storage_options={"connection_pool": redis_client.connection_pool},
     default_limits=["200 per day", "30 per hour"]
 )
 
@@ -137,10 +144,10 @@ def answer_question(pdf_data, question):
     relevant_text = get_relevant_chunks(pdf_data, question)
     
     if not relevant_text.strip():
-        return "I don't have enough information in my knowledge base to answer this question confidently. For more specific assistance with EZ-Invoice, please contact our support team."
+        return "I don't have enough information in my knowledge base to answer this question confidently. For more specific assistance with E-Invoice, please contact our support team."
 
     system_prompt = """
-    You are an EZ-Invoice FAQ Bot AI assistant designed to provide accurate, helpful information based on your knowledge base.
+    You are an E-Invoice FAQ Bot AI assistant designed to provide accurate, helpful information based on your knowledge base.
     
     GUIDELINES:
     - Respond in a friendly, professional tone
@@ -153,7 +160,7 @@ def answer_question(pdf_data, question):
     """
 
     user_prompt = f"""
-    Based on this information about EZ-Invoice:
+    Based on this information about E-Invoice:
     
     {relevant_text}
     
@@ -253,10 +260,12 @@ def health_check():
     return jsonify({
         "status": "ok", 
         "pdf_files": len(pdf_data),
-        "version": pdf_version
+        "version": pdf_version,
+        "redis_status": "connected" if redis_client.ping() else "disconnected"
     })
 
 @app.route("/chat", methods=["POST"])
+@limiter.limit("30 per hour")  # Apply rate limiting to this endpoint
 def chat():
     """Handles user queries and logs them to Google Sheets."""
     try:
@@ -294,6 +303,7 @@ def chat():
         }), 200  # Return 200 to client with error message to handle gracefully
 
 @app.route("/reload", methods=["POST"])
+@limiter.exempt  # Exempt admin endpoints from rate limiting
 def reload_pdfs():
     """Admin endpoint to reload PDFs when content changes."""
     try:
@@ -325,4 +335,14 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     logger.info(f"Starting EZ-Invoice FAQ Bot on port {port}")
     logger.info(f"Loaded {len(pdf_data)} PDF files from {PDF_FOLDER}")
+    
+    # Verify Redis connection at startup
+    try:
+        if redis_client.ping():
+            logger.info(f"Successfully connected to Redis at {redis_url}")
+        else:
+            logger.warning("Redis ping failed - rate limiting may not work correctly")
+    except Exception as e:
+        logger.error(f"Redis connection error: {e}")
+    
     app.run(host="0.0.0.0", port=port)

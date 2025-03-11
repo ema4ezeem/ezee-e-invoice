@@ -67,22 +67,34 @@
             margin: 5px;
             border-radius: 8px;
             display: flex;
-            align-items: flex-start;
+            flex-direction: column;
         }
         .message-content {
             word-wrap: break-word;
+        }
+        .message-timestamp {
+            font-size: 11px;
+            margin-top: 5px;
+            opacity: 0.7;
+            align-self: flex-end;
         }
         .user {
             align-self: flex-end;
             background: #0187fd;
             color: white;
         }
+        .user .message-timestamp {
+            color: rgba(255, 255, 255, 0.8);
+        }
         .bot {
             align-self: flex-start;
             background: #e5e5e5;
             color: black;
+        }
+        .bot-header {
             display: flex;
             align-items: flex-start;
+            margin-bottom: 5px;
         }
         .bot i {
             margin-right: 10px;
@@ -120,6 +132,10 @@
             padding: 10px;
             background: white;
             border-top: 1px solid #ddd;
+            flex-direction: column;
+        }
+        .input-row {
+            display: flex;
         }
         input {
             flex: 1;
@@ -153,6 +169,12 @@
             font-family: monospace;
             font-size: 0.9em;
         }
+        .auto-clear-notice {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+        }
         /* Mobile adjustments */
         @media (max-width: 768px) {
             .chat-container {
@@ -179,35 +201,69 @@
         </div>
         <div class="chat-box" id="chat-box"></div>
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="Type your question..." onkeydown="handleKeyPress(event)" aria-label="Message input">
-            <button onclick="sendMessage()" id="send-button" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
+            <div class="input-row">
+                <input type="text" id="user-input" placeholder="Type your question..." onkeydown="handleKeyPress(event)" aria-label="Message input">
+                <button onclick="sendMessage()" id="send-button" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div class="auto-clear-notice">Chat history will clear after 24 hours.</div>
         </div>
     </div>
     
     <script>
         // Initialize chat history storage
-        let chatHistory = localStorage.getItem('ezInvoiceChatHistory') ? 
-            JSON.parse(localStorage.getItem('ezInvoiceChatHistory')) : [];
+        let chatHistory = [];
         
-        // Load chat history if available
+        // Load chat history if available and not expired
         function loadChatHistory() {
-            const chatBox = document.getElementById("chat-box");
+            const storedData = localStorage.getItem('ezInvoiceChatHistory');
+            const lastClearTime = localStorage.getItem('ezInvoiceLastClearTime');
+            const currentTime = new Date().getTime();
             
-            if (chatHistory.length > 0) {
-                chatHistory.forEach(msg => {
-                    let msgDiv = document.createElement("div");
-                    msgDiv.classList.add("message", msg.sender);
+            // Check if 24 hours have passed since last clear
+            if (lastClearTime && (currentTime - parseInt(lastClearTime)) > 24 * 60 * 60 * 1000) {
+                clearChat(false);
+                return;
+            }
+            
+            if (storedData) {
+                try {
+                    chatHistory = JSON.parse(storedData);
                     
-                    if (msg.sender === "bot") {
-                        msgDiv.innerHTML = `<i class="fas fa-robot"></i><div class="message-content">${msg.text}</div>`;
+                    // Render stored messages
+                    const chatBox = document.getElementById("chat-box");
+                    
+                    if (chatHistory.length > 0) {
+                        chatHistory.forEach(msg => {
+                            let msgDiv = document.createElement("div");
+                            msgDiv.classList.add("message", msg.sender);
+                            
+                            if (msg.sender === "bot") {
+                                msgDiv.innerHTML = `
+                                    <div class="bot-header">
+                                        <i class="fas fa-robot"></i>
+                                        <div class="message-content">${msg.text}</div>
+                                    </div>
+                                    <div class="message-timestamp">${formatTimestamp(msg.timestamp)}</div>
+                                `;
+                            } else {
+                                msgDiv.innerHTML = `
+                                    <div class="message-content">${msg.text}</div>
+                                    <div class="message-timestamp">${formatTimestamp(msg.timestamp)}</div>
+                                `;
+                            }
+                            
+                            chatBox.appendChild(msgDiv);
+                        });
+                        
+                        chatBox.scrollTop = chatBox.scrollHeight;
                     } else {
-                        msgDiv.innerHTML = `<div class="message-content">${msg.text}</div>`;
+                        // Add welcome message if no history
+                        addMessage("Hi there! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
                     }
-                    
-                    chatBox.appendChild(msgDiv);
-                });
-                
-                chatBox.scrollTop = chatBox.scrollHeight;
+                } catch (e) {
+                    console.error("Error parsing chat history:", e);
+                    addMessage("Hi there! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
+                }
             } else {
                 // Add welcome message if no history
                 addMessage("Hi there! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
@@ -267,21 +323,45 @@
             let msgDiv = document.createElement("div");
             msgDiv.classList.add("message", sender);
             
+            const timestamp = new Date().getTime();
+            const formattedTime = formatTimestamp(timestamp);
+            
             if (sender === "bot") {
-                msgDiv.innerHTML = `<i class="fas fa-robot"></i><div class="message-content">${text}</div>`;
+                msgDiv.innerHTML = `
+                    <div class="bot-header">
+                        <i class="fas fa-robot"></i>
+                        <div class="message-content">${text}</div>
+                    </div>
+                    <div class="message-timestamp">${formattedTime}</div>
+                `;
             } else {
-                msgDiv.innerHTML = `<div class="message-content">${text}</div>`;
+                msgDiv.innerHTML = `
+                    <div class="message-content">${text}</div>
+                    <div class="message-timestamp">${formattedTime}</div>
+                `;
             }
             
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
         
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+        
         function addTypingIndicator() {
             let chatBox = document.getElementById("chat-box");
             let typingDiv = document.createElement("div");
             typingDiv.classList.add("message", "bot");
-            typingDiv.innerHTML = `<i class="fas fa-robot"></i><div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+            typingDiv.innerHTML = `
+                <div class="bot-header">
+                    <i class="fas fa-robot"></i>
+                    <div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                </div>
+            `;
             chatBox.appendChild(typingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             return typingDiv;
@@ -299,7 +379,9 @@
         }
 
         function saveToChatHistory(text, sender) {
-            chatHistory.push({ text, sender });
+            const timestamp = new Date().getTime();
+            
+            chatHistory.push({ text, sender, timestamp });
             
             // Keep only the last 50 messages to prevent localStorage overflow
             if (chatHistory.length > 50) {
@@ -307,6 +389,11 @@
             }
             
             localStorage.setItem('ezInvoiceChatHistory', JSON.stringify(chatHistory));
+            
+            // Set last clear time if not already set
+            if (!localStorage.getItem('ezInvoiceLastClearTime')) {
+                localStorage.setItem('ezInvoiceLastClearTime', timestamp.toString());
+            }
         }
 
         function handleKeyPress(event) {
@@ -316,15 +403,40 @@
             }
         }
         
-        function clearChat() {
+        function clearChat(showMessage = true) {
             document.getElementById("chat-box").innerHTML = "";
             chatHistory = [];
             localStorage.removeItem('ezInvoiceChatHistory');
-            addMessage("Chat history cleared. How can I help you today?", "bot");
+            
+            // Update last clear time
+            const currentTime = new Date().getTime();
+            localStorage.setItem('ezInvoiceLastClearTime', currentTime.toString());
+            
+            if (showMessage) {
+                addMessage("Chat history cleared. How can I help you today?", "bot");
+            } else {
+                addMessage("Welcome back! Previous chat history was automatically cleared after 24 hours. How can I help you today?", "bot");
+            }
         }
         
-        // Load chat history or display welcome message on page load
-        document.addEventListener("DOMContentLoaded", loadChatHistory);
+        // Check for expired chat history on page load and periodically
+        function setupAutoClear() {
+            // Check every hour if the chat history should be cleared (24 hour expiry)
+            setInterval(() => {
+                const lastClearTime = localStorage.getItem('ezInvoiceLastClearTime');
+                const currentTime = new Date().getTime();
+                
+                if (lastClearTime && (currentTime - parseInt(lastClearTime)) > 24 * 60 * 60 * 1000) {
+                    clearChat(false);
+                }
+            }, 60 * 60 * 1000); // Check every hour
+        }
+        
+        // Load chat history and setup auto-clear on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            loadChatHistory();
+            setupAutoClear();
+        });
     </script>
 </body>
 </html>

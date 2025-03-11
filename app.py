@@ -14,6 +14,7 @@ import datetime
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import redis
+import pytz
 
 # Configure logging
 logging.basicConfig(
@@ -221,7 +222,10 @@ def append_to_google_sheet(data):
             
         range_name = "ChatLogs!A:C"  
 
-        values = [[datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data[0][1], data[0][2]]]
+        malaysia_tz = pytz.timezone("Asia/Kuala_Lumpur")
+        timestamp_myt = datetime.datetime.now(malaysia_tz).strftime("%Y-%m-%d %H:%M:%S")
+
+        values = [[timestamp_myt, data[0][1], data[0][2]]]
         body = {"values": values}
 
         logger.debug(f"Sending data to Google Sheets: {body}")

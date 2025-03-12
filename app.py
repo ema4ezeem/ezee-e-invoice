@@ -158,6 +158,7 @@ def answer_question(pdf_data, question):
     - **Acknowledge what you don’t know**—if unsure, say so in a helpful way (e.g., *"I don’t have that info right now, but here’s where you can check!"*).
     - **Make small talk**- allow for small talk if a user starts so, but redirect the conversation to ask if they need help with E-invoicing.
     - **Stay focused on the question**—no extra fluff, just what the user needs.
+    - **Don't reference your knowledge base**- avoid mentioning specific sections in your knowledge base. Avoid mentioning "based/according to the information.."
 
     EXAMPLE TONES:
     **Bad:** "Hello. Please provide a specific question so I may assist you." (Too cold.)

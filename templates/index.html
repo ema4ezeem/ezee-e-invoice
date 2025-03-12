@@ -35,7 +35,12 @@
             padding: 15px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             border-radius: 10px 10px 0 0;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
         }
         .logo {
             width: 35px;
@@ -53,6 +58,24 @@
             color: white;
             margin-top: 2px;
         }
+        .clear-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .clear-button i {
+            margin-right: 5px;
+        }
+        .clear-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
         .chat-box {
             flex-grow: 1;
             overflow-y: auto;
@@ -60,6 +83,7 @@
             display: flex;
             flex-direction: column;
             scroll-behavior: smooth;
+            border: 1px solid #0c4466;
         }
         .message {
             max-width: 80%;
@@ -193,11 +217,16 @@
 <body>
     <div class="chat-container">
         <div class="header-container">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Company Logo" class="logo">
-            <div>
-                <div class="header-text">EZ-Invoice FAQ Bot</div>
-                <div class="subheader">Ask me about e-invoicing!</div>
+            <div class="header-left">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Company Logo" class="logo">
+                <div>
+                    <div class="header-text">EZ-Invoice FAQ Bot</div>
+                    <div class="subheader">Ask me about e-invoicing!</div>
+                </div>
             </div>
+            <button class="clear-button" onclick="clearChat()" aria-label="Clear chat history">
+                <i class="fas fa-trash-alt"></i> Clear History
+            </button>
         </div>
         <div class="chat-box" id="chat-box"></div>
         <div class="input-container">
@@ -412,11 +441,8 @@
             const currentTime = new Date().getTime();
             localStorage.setItem('ezInvoiceLastClearTime', currentTime.toString());
             
-            if (showMessage) {
-                addMessage("Chat history cleared. How can I help you today?", "bot");
-            } else {
-                addMessage("Welcome back! Previous chat history was automatically cleared after 24 hours. How can I help you today?", "bot");
-            }
+            // Add welcome message after clearing
+            addMessage("Hi there! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
         }
         
         // Check for expired chat history on page load and periodically

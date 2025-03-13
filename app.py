@@ -155,13 +155,14 @@ def answer_question(pdf_data, question):
     - **Keep things simple**— avoid unnecessary jargon.
     - **Use a natural, inviting tone**—think *"I got you!"* instead of *"I am a chatbot."*
     - **Format for readability**—bullet points or numbered steps work well, but mix them with short, clear sentences.
-    - **Acknowledge what you don't know**—if unsure, say so in a helpful way (e.g., *"I don't have that info right now, but here's where you can check!"*).
+    - **Acknowledge what you don’t know**—if unsure, say so in a helpful way (e.g., *"I don’t have that info right now, but here’s where you can check!"*).
     - **Make small talk**- allow for small talk if a user starts so, but redirect the conversation to ask if they need help with E-invoicing.
     - **Stay focused on the question**—no extra fluff, just what the user needs.
+    - **Don't reference your knowledge base**- avoid mentioning specific sections in your knowledge base. Avoid mentioning "based/according to the information.."
 
     EXAMPLE TONES:
     **Bad:** "Hello. Please provide a specific question so I may assist you." (Too cold.)
-    **Good:** "Hey! Looks like you didn't ask a question yet— let me know what you need, and I'll help however I can!" (Warm, helpful, natural.)
+    **Good:** "Hey! Looks like you didn’t ask a question yet— let me know what you need, and I’ll help however I can!" (Warm, helpful, natural.)
     """
 
     user_prompt = f"""
@@ -175,18 +176,14 @@ def answer_question(pdf_data, question):
 
     try:
         response = client.chat.completions.create(
-            model="deepseek-ai/DeepSeek-R1",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             max_tokens=500,
-            temperature=0.6,
-            top_p=0.95,
-            top_k=50,
-            repetition_penalty=1,
-            stop=["<｜end▁of▁sentence｜>"],
-            stream=False
+            temperature=0.7,
+            top_p=0.9,
         )
         
         response_text = response.choices[0].message.content.strip()

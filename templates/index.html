@@ -241,26 +241,30 @@
     </div>
     
     <script>
-        // Initialize chat history storage and conversation ID
+        // Initialize chat history storage and session ID
         let chatHistory = [];
-        let conversationId = '{{conversation_id}}';
+        let sessionId = '{{ session_id }}';
         
         // Load chat history if available and not expired
         function loadChatHistory() {
             const storedData = localStorage.getItem('ezInvoiceChatHistory');
-            const storedConversationId = localStorage.getItem('ezInvoiceConversationId');
-            const lastClearTime = localStorage.getItem('ezInvoiceLastClearTime');
+            const storedSessionId = localStorage.getItem('ezInvoiceSessionId');
+            const lastActiveTime = localStorage.getItem('ezInvoiceLastActiveTime');
             const currentTime = new Date().getTime();
             
-            // Check if stored conversation ID matches the current one
-            if (storedConversationId && storedConversationId !== conversationId) {
-                // If different conversation ID, clear chat history
-                clearChat(false);
-                return;
+            // Initialize session ID from server or local storage
+            if (storedSessionId) {
+                sessionId = storedSessionId;
+            } else if (sessionId) {
+                localStorage.setItem('ezInvoiceSessionId', sessionId);
+            } else {
+                // Generate a new session ID if none exists
+                sessionId = generateUUID();
+                localStorage.setItem('ezInvoiceSessionId', sessionId);
             }
             
-            // Check if 24 hours have passed since last clear
-            if (lastClearTime && (currentTime - parseInt(lastClearTime)) > 24 * 60 * 60 * 1000) {
+            // Check for 30-minute expiry (matching server-side CONVERSATION_EXPIRY of 1800 seconds)
+            if (lastActiveTime && (currentTime - parseInt(lastActiveTime)) > 30 * 60 * 1000) {
                 clearChat(false);
                 return;
             }
@@ -308,6 +312,9 @@
                 // Add welcome message if no history
                 addMessage("Hi there! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
             }
+            
+            // Update last active time
+            updateLastActiveTime();
         }
         
         function sendMessage() {
@@ -332,7 +339,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     message: message,
-                    conversation_id: conversationId
+                    session_id: sessionId
                 })
             })
             .then(response => {
@@ -347,11 +354,14 @@
                 addMessage(formattedResponse, "bot");
                 saveToChatHistory(formattedResponse, "bot");
                 
-                // Update conversation ID if returned from server
-                if (data.conversation_id) {
-                    conversationId = data.conversation_id;
-                    localStorage.setItem('ezInvoiceConversationId', conversationId);
+                // Update session ID if returned from server
+                if (data.session_id) {
+                    sessionId = data.session_id;
+                    localStorage.setItem('ezInvoiceSessionId', sessionId);
                 }
+                
+                // Update last active time
+                updateLastActiveTime();
             })
             .catch(error => {
                 console.error("Error:", error);
@@ -438,12 +448,9 @@
             }
             
             localStorage.setItem('ezInvoiceChatHistory', JSON.stringify(chatHistory));
-            localStorage.setItem('ezInvoiceConversationId', conversationId);
             
-            // Set last clear time if not already set
-            if (!localStorage.getItem('ezInvoiceLastClearTime')) {
-                localStorage.setItem('ezInvoiceLastClearTime', timestamp.toString());
-            }
+            // Update last active time
+            updateLastActiveTime();
         }
 
         function handleKeyPress(event) {
@@ -457,51 +464,75 @@
             document.getElementById("chat-box").innerHTML = "";
             chatHistory = [];
             
-            // Clear server-side conversation context
-            fetch("/clear-conversation", {
+            // Create new conversation on server with new session ID
+            fetch("/new_conversation", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ conversation_id: conversationId })
+                headers: { "Content-Type": "application/json" }
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.new_conversation_id) {
-                    // Update to the new conversation ID
-                    conversationId = data.new_conversation_id;
-                    localStorage.setItem('ezInvoiceConversationId', conversationId);
+                if (data.success && data.session_id) {
+                    // Update to the new session ID
+                    sessionId = data.session_id;
+                    localStorage.setItem('ezInvoiceSessionId', sessionId);
                 }
             })
             .catch(error => {
-                console.error("Error clearing conversation:", error);
+                console.error("Error creating new conversation:", error);
+                // Generate client-side session ID as fallback
+                sessionId = generateUUID();
+                localStorage.setItem('ezInvoiceSessionId', sessionId);
             });
             
             localStorage.removeItem('ezInvoiceChatHistory');
             
-            // Update last clear time
-            const currentTime = new Date().getTime();
-            localStorage.setItem('ezInvoiceLastClearTime', currentTime.toString());
+            // Update last active time
+            updateLastActiveTime();
             
             // Add welcome message after clearing
-            addMessage("Hello! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
+            if (showMessage) {
+                addMessage("Hello! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
+            }
         }
         
-        // Check for expired chat history on page load and periodically
-        function setupAutoClear() {
-            // Check every hour if the chat history should be cleared (24 hour expiry)
+        function updateLastActiveTime() {
+            const currentTime = new Date().getTime();
+            localStorage.setItem('ezInvoiceLastActiveTime', currentTime.toString());
+        }
+        
+        // Check for expired chat session periodically (30 minutes matching server)
+        function setupAutoExpiry() {
+            // Check every minute if the chat should be cleared (30 minute expiry)
             setInterval(() => {
-                const lastClearTime = localStorage.getItem('ezInvoiceLastClearTime');
+                const lastActiveTime = localStorage.getItem('ezInvoiceLastActiveTime');
                 const currentTime = new Date().getTime();
                 
-                if (lastClearTime && (currentTime - parseInt(lastClearTime)) > 24 * 60 * 60 * 1000) {
+                if (lastActiveTime && (currentTime - parseInt(lastActiveTime)) > 30 * 60 * 1000) {
                     clearChat(false);
+                    window.location.reload(); // Reload to get a fresh session from server
                 }
-            }, 60 * 60 * 1000); // Check every hour
+            }, 60 * 1000); // Check every minute
         }
         
-        // Load chat history and setup auto-clear on page load
+        // Generate UUID for session ID (fallback if server doesn't provide one)
+        function generateUUID() {
+            let dt = new Date().getTime();
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = (dt + Math.random()*16)%16 | 0;
+                dt = Math.floor(dt/16);
+                return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+            });
+        }
+        
+        // Load chat history and setup auto-expiry on page load
         document.addEventListener("DOMContentLoaded", () => {
             loadChatHistory();
-            setupAutoClear();
+            setupAutoExpiry();
+            
+            // Set up periodic activity check to keep conversation alive
+            setInterval(() => {
+                updateLastActiveTime();
+            }, 5 * 60 * 1000); // Update every 5 minutes if page is open
         });
     </script>
 </body>

@@ -236,19 +236,28 @@
                 <input type="text" id="user-input" placeholder="Type your question..." onkeydown="handleKeyPress(event)" aria-label="Message input">
                 <button onclick="sendMessage()" id="send-button" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
             </div>
-            <div class="auto-clear-notice">Chat history will clear after 24 hours.</div>
+            <div class="auto-clear-notice">Disclaimer: This bot is currently in beta-testing. Responses may not be 100% accurate. Chat history will clear after 24 hours.</div>
         </div>
     </div>
     
     <script>
-        // Initialize chat history storage
+        // Initialize chat history storage and conversation ID
         let chatHistory = [];
+        let conversationId = '{{conversation_id}}';
         
         // Load chat history if available and not expired
         function loadChatHistory() {
             const storedData = localStorage.getItem('ezInvoiceChatHistory');
+            const storedConversationId = localStorage.getItem('ezInvoiceConversationId');
             const lastClearTime = localStorage.getItem('ezInvoiceLastClearTime');
             const currentTime = new Date().getTime();
+            
+            // Check if stored conversation ID matches the current one
+            if (storedConversationId && storedConversationId !== conversationId) {
+                // If different conversation ID, clear chat history
+                clearChat(false);
+                return;
+            }
             
             // Check if 24 hours have passed since last clear
             if (lastClearTime && (currentTime - parseInt(lastClearTime)) > 24 * 60 * 60 * 1000) {
@@ -321,7 +330,10 @@
             fetch("/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ 
+                    message: message,
+                    conversation_id: conversationId
+                })
             })
             .then(response => {
                 if (!response.ok) {
@@ -334,6 +346,12 @@
                 let formattedResponse = convertMarkdown(data.response);
                 addMessage(formattedResponse, "bot");
                 saveToChatHistory(formattedResponse, "bot");
+                
+                // Update conversation ID if returned from server
+                if (data.conversation_id) {
+                    conversationId = data.conversation_id;
+                    localStorage.setItem('ezInvoiceConversationId', conversationId);
+                }
             })
             .catch(error => {
                 console.error("Error:", error);
@@ -420,6 +438,7 @@
             }
             
             localStorage.setItem('ezInvoiceChatHistory', JSON.stringify(chatHistory));
+            localStorage.setItem('ezInvoiceConversationId', conversationId);
             
             // Set last clear time if not already set
             if (!localStorage.getItem('ezInvoiceLastClearTime')) {
@@ -437,6 +456,25 @@
         function clearChat(showMessage = true) {
             document.getElementById("chat-box").innerHTML = "";
             chatHistory = [];
+            
+            // Clear server-side conversation context
+            fetch("/clear-conversation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversation_id: conversationId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.new_conversation_id) {
+                    // Update to the new conversation ID
+                    conversationId = data.new_conversation_id;
+                    localStorage.setItem('ezInvoiceConversationId', conversationId);
+                }
+            })
+            .catch(error => {
+                console.error("Error clearing conversation:", error);
+            });
+            
             localStorage.removeItem('ezInvoiceChatHistory');
             
             // Update last clear time
@@ -444,7 +482,7 @@
             localStorage.setItem('ezInvoiceLastClearTime', currentTime.toString());
             
             // Add welcome message after clearing
-            addMessage("Hi there! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
+            addMessage("Hello! I'm your EZ-Invoice assistant. How can I help you today?", "bot");
         }
         
         // Check for expired chat history on page load and periodically

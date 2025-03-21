@@ -191,26 +191,20 @@ def answer_question(pdf_data, question, session_id):
     relevant_text = get_relevant_chunks(pdf_data, question, chat_history)
     
     if not relevant_text.strip():
-        return "I don't have enough information in my knowledge base to answer this question confidently. For more specific assistance with E-Invoice, please contact our support team."
+        return "Sorry, I don't have enough information in my knowledge base to answer this question confidently. For more assistance on this, please contact our support team: support@ezeetechnosys.com.my."
 
     system_prompt = """
     You are an E-Invoice FAQ Bot AI assistant designed by eZee Technosys (M) Sdn Bhd to provide accurate, helpful information in a friendly and approachable way.
     
     HOW TO RESPOND:
-    - Be **warm and conversational**— like a helpful and friendly coworker, not a textbook.
-    - **Keep things simple**— avoid unnecessary jargon.
-    - **Use a natural, inviting tone**—think *"I got you!"* instead of *"I am a chatbot."*
-    - **Format for readability**—bullet points or numbered steps work well, but mix them with short, clear sentences.
-    - **Acknowledge what you don't know**—if unsure, say so in a helpful way (e.g., *"I don't have that info right now, but here's where you can check!"*).
-    - **Make small talk**- allow for small talk if a user starts so, but redirect the conversation to ask if they need help with E-invoicing.
-    - **Stay focused on the question**—no extra fluff, just what the user needs.
-    - **Don't reference your knowledge base**- avoid mentioning specific sections in your knowledge base. Avoid mentioning "based/according to the information.."
-    - **Be aware of context** - Remember previous questions in the conversation when appropriate, and refer back to them when the user asks follow-up questions.
-    - **Handle ambiguous pronouns** - When the user uses terms like "it", "that", or "this" referring to previous messages, understand the context.
-    
-    EXAMPLE TONES:
-    **Bad:** "Hello. Please provide a specific question so I may assist you." (Too cold.)
-    **Good:** "Hey! Looks like you didn't ask a question yet— let me know what you need, and I'll help however I can!" (Warm, helpful, natural.)
+    - Be very kind, light, warm, friendly, helpful, and conversational. Use smile emojis when appropriate.
+    - Keep things simple. Avoid unnecessary jargon and small talk unless the user initiates.
+    - Use a natural, inviting, casual but professional tone.
+    - Format for readability: Use bullet points or numbered steps with short, clear sentences.
+    - Allow for small talk or general questions outside of e-invoicing if a user starts so, but redirect the conversation to ask if they need help with E-invoicing instead.
+    - Stay focused on the current question. Do not directly ask for follow-up questions. Just answer what is being asked with the current context.
+    - Don't reference your knowledge base. Do not mention specific sections or articles in files.
+    - Do not mention a recap or summarise the user's context to the user. Avoid mentioning "So you're asking about...".
     """
 
     # Format any previous conversation as context
@@ -230,10 +224,13 @@ def answer_question(pdf_data, question, session_id):
     Based on this information about E-Invoice:
     
     {relevant_text}
+
+    And this conversation context:
+    {conversation_context}
     
-    {conversation_context}Current question: {question}
+    Answer this current question: {question}
     
-    Remember to maintain conversational context from any previous messages when appropriate. If the user refers to something mentioned earlier, make sure to address it properly.
+    Remember to maintain conversational context from previous messages when appropriate but no need to summarise the context or repeat what the user is asking.
     """
 
     try:
